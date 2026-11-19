@@ -110,6 +110,7 @@ void display_draw_char(uint16_t x, uint16_t y, char ch, uint16_t fg, uint16_t bg
 
 /*
  * display_draw_text - Draw a null-terminated string starting at (x, y).
+ * UTF-8 text supports ASCII plus Turkish and Russian glyphs.
  * Characters advance by (DISPLAY_FONT_W + DISPLAY_CHAR_GAP) pixels horizontally.
  */
 void display_draw_text(uint16_t x, uint16_t y, const char *str, uint16_t fg, uint16_t bg);

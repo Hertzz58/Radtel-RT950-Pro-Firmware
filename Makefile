@@ -156,6 +156,8 @@ $(HEX): $(ELF)
 	@$(OBJCOPY) -O ihex $< $@
 
 # Compile C sources
+$(BUILD_DIR)/app/display.o: $(SRC_DIR)/app/font_menu_ext.inc
+
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	@echo "  CC    $<"

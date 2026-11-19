@@ -8,6 +8,7 @@
  * Font covers printable ASCII 0x20 (' ') through 0x7E ('~'), 95 glyphs.
  * Each glyph is 5 columns x 7 rows, stored column-major (5 bytes each,
  * LSB = top row).
+ * Turkish and Russian UTF-8 glyphs use the same width with an extra row.
  *
  * Main screen layout (240x320 portrait):
  *   y=  0..19  : Status bar (battery, TX/RX, icons)
@@ -32,6 +33,7 @@
 #include "drivers/lcd.h"
 #include "drivers/bk4829.h"
 #include <stdarg.h>
+#include <stddef.h>
 
 /* ========================================================================
  *  5x7 bitmap font - ASCII 0x20 to 0x7E (95 characters)
@@ -156,31 +158,83 @@ void display_clear(uint16_t color)
     lcd_fill_rect(0, 0, LCD_WIDTH, LCD_HEIGHT, color);
 }
 
-/* ========================================================================
- *  display_draw_char - Render a single 5x7 character at (x, y).
- *
- *  Draws a 5x7 pixel rectangle.  Each font column byte has LSB = top row.
- *  Characters outside 0x20-0x7E are replaced with '?'.
- * ======================================================================== */
+#include "font_menu_ext.inc"
 
-void display_draw_char(uint16_t x, uint16_t y, char ch, uint16_t fg, uint16_t bg)
+static void draw_glyph(uint16_t x, uint16_t y, const uint8_t *glyph, uint8_t height,
+                       uint16_t fg, uint16_t bg)
 {
-    if (ch < 0x20 || ch > 0x7E)
-        ch = '?';
-
-    const uint8_t *glyph = font5x7[ch - 0x20];
-
-    lcd_set_window(x, y, x + DISPLAY_FONT_W - 1, y + DISPLAY_FONT_H - 1);
+    if (x + DISPLAY_FONT_W > LCD_WIDTH || y >= LCD_HEIGHT)
+        return;
+    if (y + height > LCD_HEIGHT)
+        height = LCD_HEIGHT - y;
+    lcd_set_window(x, y, x + DISPLAY_FONT_W - 1, y + height - 1);
     lcd_gram_write();
 
     /* Pixel data is sent row-major (top-left to bottom-right) */
-    for (uint8_t row = 0; row < DISPLAY_FONT_H; row++) {
+    for (uint8_t row = 0; row < height; row++) {
         for (uint8_t col = 0; col < DISPLAY_FONT_W; col++) {
             uint16_t color = (glyph[col] & (1 << row)) ? fg : bg;
             lcd_write_data(color >> 8);
             lcd_write_data(color & 0xFF);
         }
     }
+}
+
+void display_draw_char(uint16_t x, uint16_t y, char ch, uint16_t fg, uint16_t bg)
+{
+    if (ch < 0x20 || ch > 0x7E)
+        ch = '?';
+    draw_glyph(x, y, font5x7[ch - 0x20], DISPLAY_FONT_H, fg, bg);
+}
+
+static uint32_t read_codepoint(const char **text)
+{
+    uint32_t codepoint = (uint8_t)**text;
+    ++*text;
+    if (codepoint < 0x80)
+        return codepoint;
+
+    uint8_t remaining;
+    uint32_t minimum;
+    if (codepoint >= 0xC2 && codepoint <= 0xDF) {
+        codepoint &= 0x1F;
+        remaining = 1;
+        minimum = 0x80;
+    } else if (codepoint >= 0xE0 && codepoint <= 0xEF) {
+        codepoint &= 0x0F;
+        remaining = 2;
+        minimum = 0x800;
+    } else if (codepoint >= 0xF0 && codepoint <= 0xF4) {
+        codepoint &= 0x07;
+        remaining = 3;
+        minimum = 0x10000;
+    } else {
+        return '?';
+    }
+
+    while (remaining--) {
+        uint8_t byte = (uint8_t)**text;
+        if ((byte & 0xC0) != 0x80)
+            return '?';
+        ++*text;
+        codepoint = (codepoint << 6) | (byte & 0x3F);
+    }
+    if (codepoint < minimum || codepoint > 0x10FFFF ||
+        (codepoint >= 0xD800 && codepoint <= 0xDFFF))
+        return '?';
+    return codepoint;
+}
+
+static const uint8_t *extended_glyph(uint32_t codepoint)
+{
+    if (codepoint >= 0x0410 && codepoint <= 0x044F)
+        return cyrillic_glyphs[codepoint - 0x0410];
+
+    for (unsigned i = 0; i < sizeof extra_glyphs / sizeof extra_glyphs[0]; i++) {
+        if (extra_glyphs[i].codepoint == codepoint)
+            return extra_glyphs[i].columns;
+    }
+    return NULL;
 }
 
 /* ========================================================================
@@ -192,9 +246,13 @@ void display_draw_text(uint16_t x, uint16_t y, const char *str, uint16_t fg, uin
     while (*str) {
         if (x + DISPLAY_FONT_W > LCD_WIDTH)
             break;
-        display_draw_char(x, y, *str, fg, bg);
+        uint32_t codepoint = read_codepoint(&str);
+        const uint8_t *glyph = (codepoint >= 0x80) ? extended_glyph(codepoint) : NULL;
+        if (glyph)
+            draw_glyph(x, y, glyph, 8, fg, bg);
+        else
+            display_draw_char(x, y, (codepoint < 0x80) ? (char)codepoint : '?', fg, bg);
         x += DISPLAY_FONT_W + DISPLAY_CHAR_GAP;
-        str++;
     }
 }
 
