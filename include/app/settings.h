@@ -17,6 +17,13 @@
 
 #include <stdint.h>
 
+/* Keep the legacy Chinese value (1) reserved in saved settings. */
+enum {
+    SETTINGS_LANGUAGE_ENGLISH = 0,
+    SETTINGS_LANGUAGE_TURKISH = 2,
+    SETTINGS_LANGUAGE_RUSSIAN = 3,
+};
+
 /*
  * System settings struct - fields from CPS S_3941 / V0.27 analysis.
  * Padded to SYSCFG record size (128 bytes) for direct WL read/write.
@@ -33,7 +40,7 @@ typedef struct __attribute__((packed)) {
     uint8_t  tot;               /* TX timeout: 0=OFF, 1=30s, 2=60s, ... 8=240s */
     uint8_t  beep;              /* 0=OFF, 1=ON */
     uint8_t  voice_prompt;      /* 0=OFF, 1=ON */
-    uint8_t  language;          /* 0=English, 1=Chinese */
+    uint8_t  language;          /* SETTINGS_LANGUAGE_* */
     uint8_t  dtmf_st;           /* 0=OFF, 1=ON */
     uint8_t  scan_mode;         /* 0=TO(timeout), 1=CO(carrier), 2=SE(search) */
     uint8_t  ptt_id;            /* 0=OFF, 1=BOT, 2=EOT, 3=BOTH */

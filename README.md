@@ -42,6 +42,12 @@ Open-source bare-metal firmware for the **Radtel RT-950 Pro** handheld radio.
 
 ![Example Test](docs/screenshots/screenshot_1.jpg)
 
+## Menu language
+
+Open **Setting → Language** and choose **English**, **Türkçe**, or **Русский**.
+Press the menu key to save the choice. The radio keeps it across restarts.
+The selection applies to the on-radio menu and its key hints.
+
 ## Building
 
 ### Prerequisites

@@ -7,7 +7,7 @@
  * Usage:
  *   text_input_start(buf, max_len);
  *   // route keys + encoder to text_input_handle_key / handle_encoder
- *   // call text_input_draw() in display loop
+ *   // call text_input_draw("Edit Name:") in the display loop
  *   // check text_input_is_active() - becomes false on confirm/cancel
  *   // text_input_confirmed() true if user pressed MENU (not EXIT)
  */
@@ -31,6 +31,6 @@ void text_input_handle_key(uint8_t key);
 void text_input_handle_encoder(int8_t direction);
 
 /* Draw the editor UI (call from display refresh) */
-void text_input_draw(void);
+void text_input_draw(const char *title);
 
 #endif /* APP_TEXT_INPUT_H */
