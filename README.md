@@ -16,9 +16,11 @@ Open-source bare-metal firmware for the **Radtel RT-950 Pro** handheld radio.
 - **Backlight**: Primary (PC6), Secondary (PB3)
 - **Power latch**: PB9
 - **Band relay**: PC4
+- **Controls**: keypad and rotary encoder tested on hardware
+- **SPI flash**: Macronix MX25L1606E detected and calibration data read
 - **Boot**: Custom firmware loads and runs via OEM bootloader
 
-### What's Implemented (Roughly Code-Complete, Untested)
+### What's Implemented (Hardware Testing Incomplete)
 
 - **Hardware drivers**: GPIO, SPI2 (flash), bit-bang SPI (BK4829), bit-bang I2C (SI4732), USART1/3/UART4, ADC2, DAC1+TIM6+DMA, ST7789V LCD (8080 parallel), DMA1/DMA2
 - **RF control**: Dual BK4829 transceiver driver, frequency programming, TX power levels, calibration tables from flash
@@ -34,7 +36,7 @@ Open-source bare-metal firmware for the **Radtel RT-950 Pro** handheld radio.
 
 ### What's Not Done
 
-- Most peripherals untested on hardware (SPI flash, BK4829, SI4732, GPS, keypad, encoder)
+- More hardware testing is needed for BK4829, SI4732, and GPS
 - Bluetooth audio streaming (AT commands only)
 - Voice prompt audio samples (tone patterns only)
 
