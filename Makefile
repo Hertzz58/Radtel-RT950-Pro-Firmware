@@ -156,10 +156,12 @@ $(HEX): $(ELF)
 	@$(OBJCOPY) -O ihex $< $@
 
 # Compile C sources
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c Makefile
 	@mkdir -p $(dir $@)
 	@echo "  CC    $<"
-	@$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
+
+-include $(OBJS:.o=.d)
 
 # Per-file overrides: disable tail-call optimization for modules with
 # flash read chains that are sensitive to GCC sibling-call transforms.
