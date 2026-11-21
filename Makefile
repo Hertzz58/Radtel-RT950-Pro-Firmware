@@ -156,7 +156,20 @@ $(HEX): $(ELF)
 	@$(OBJCOPY) -O ihex $< $@
 
 # Compile C sources
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c Makefile
+# DEBUG changes compiler flags even if the source files are unchanged.
+DEBUG_MODE := $(if $(DEBUG),debug,release)
+DEBUG_MODE_FILE := $(BUILD_DIR)/.debug-mode
+ifneq ($(shell cat "$(DEBUG_MODE_FILE)" 2>/dev/null),$(DEBUG_MODE))
+.PHONY: debug-mode-changed
+$(DEBUG_MODE_FILE): debug-mode-changed
+endif
+
+$(DEBUG_MODE_FILE):
+	@mkdir -p $(dir $@)
+	@printf '%s\n' '$(DEBUG_MODE)' > "$@.tmp"
+	@mv "$@.tmp" "$@"
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c Makefile $(DEBUG_MODE_FILE)
 	@mkdir -p $(dir $@)
 	@echo "  CC    $<"
 	@$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
