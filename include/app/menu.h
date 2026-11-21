@@ -106,6 +106,8 @@ typedef enum {
     MENU_FACTORY_RESET,
     /* About */
     MENU_ABOUT_VERSION,
+    /* Additional firmware settings */
+    MENU_LANGUAGE,
     /* Count */
     MENU_ITEM_COUNT,
 } menu_item_t;

@@ -50,11 +50,54 @@
 
 #define MENU_X_PAD      8
 #define MENU_AREA_H   280
+#define MENU_VALUE_X  (LCD_WIDTH - 70)
+
+enum {
+    MENU_ENGLISH,
+    MENU_TURKISH,
+    MENU_RUSSIAN,
+    MENU_LANGUAGE_COUNT,
+};
+
+typedef const char *menu_text_t[MENU_LANGUAGE_COUNT];
+
+static const uint8_t language_values[] = {
+    [MENU_ENGLISH] = SETTINGS_LANGUAGE_ENGLISH,
+    [MENU_TURKISH] = SETTINGS_LANGUAGE_TURKISH,
+    [MENU_RUSSIAN] = SETTINGS_LANGUAGE_RUSSIAN,
+};
+
+static uint8_t get_language(void)
+{
+    uint8_t stored = settings_get()->language;
+    for (uint8_t i = 0; i < MENU_LANGUAGE_COUNT; i++) {
+        if (stored == language_values[i])
+            return i;
+    }
+    return MENU_ENGLISH;
+}
+
+static void set_language(uint8_t choice)
+{
+    if (choice < MENU_LANGUAGE_COUNT && settings_get()->language != language_values[choice])
+        settings_set_u8(offsetof(settings_t, language), language_values[choice]);
+}
+
+static const char *localized(const char * const text[MENU_LANGUAGE_COUNT])
+{
+    return text[get_language()];
+}
+
+#define TEXT(en, tr, ru) localized((const char * const [MENU_LANGUAGE_COUNT]){en, tr, ru})
+
+static const menu_text_t text_off = { "Off", "Kapalı", "Выкл." };
+static const menu_text_t text_on = { "On", "Açık", "Вкл." };
+static const menu_text_t text_save = { "OK=Save  #=Cancel", "OK=Kaydet  #=İptal", "OK=Сохранить  #=Отмена" };
 
 /* Item descriptor */
 
 typedef struct {
-    const char *name;
+    menu_text_t name;
     uint8_t     min_val;
     uint8_t     max_val;
     uint8_t     (*get_val)(void);
@@ -64,7 +107,7 @@ typedef struct {
 /* Category descriptor */
 
 typedef struct {
-    const char        *name;
+    menu_text_t        name;
     const menu_item_t *items;
     uint8_t            count;
 } menu_category_t;
@@ -311,49 +354,50 @@ static void    set_about_version(uint8_t v) { (void)v; }
 /* Item descriptor table */
 
 static const menu_item_desc_t menu_items[MENU_ITEM_COUNT] = {
-    [MENU_VOX_SWITCH]     = { "VOX Switch",   0,   1, get_vox_switch,    set_vox_switch   },
-    [MENU_VOX_LEVEL]      = { "VOX Level",    0,   9, get_vox_level,     set_vox_level    },
-    [MENU_VOX_DELAY]      = { "VOX Delay",    0,   7, get_vox_delay,     set_vox_delay    },
-    [MENU_STEP]           = { "Step",         0,   7, get_step,          set_step         },
-    [MENU_OFFSET_DIR]     = { "Direction",    0,   2, get_offset_dir,    set_offset_dir   },
-    [MENU_OFFSET_FREQ]    = { "Offset",       0, 255, get_offset_freq,   set_offset_freq  },
-    [MENU_MODULATION]     = { "Modulation",   0,   3, get_modulation,    set_modulation   },
-    [MENU_CH_NAME]        = { "Ch Name",      0,   0, get_ch_name,       set_ch_name      },
-    [MENU_CTCSS_TX]       = { "TX CTCSS",     0,  50, get_ctcss_tx,      set_ctcss_tx     },
-    [MENU_CTCSS_RX]       = { "RX CTCSS",     0,  50, get_ctcss_rx,      set_ctcss_rx     },
-    [MENU_DCS_TX]         = { "TX DCS",       0, 104, get_dcs_tx,        set_dcs_tx       },
-    [MENU_DCS_RX]         = { "RX DCS",       0, 104, get_dcs_rx,        set_dcs_rx       },
-    [MENU_SCRAMBLER]      = { "Encryption",   0,   1, get_scrambler,     set_scrambler    },
-    [MENU_SCAN_ADD]       = { "Scan Add",     0,   1, get_scan_add,      set_scan_add     },
-    [MENU_SQUELCH]        = { "Squelch",      0,   9, get_squelch,       set_squelch      },
-    [MENU_TX_POWER]       = { "TX Power",     0,   2, get_tx_power,      set_tx_power     },
-    [MENU_BANDWIDTH]      = { "Bandwidth",    0,   1, get_bandwidth,     set_bandwidth    },
-    [MENU_BCL]            = { "Busy Lock",    0,   1, get_bcl,           set_bcl          },
-    [MENU_TOT]            = { "TOT",          0,   8, get_tot,           set_tot          },
-    [MENU_STE]            = { "Tail Elim",    0,   1, get_ste,           set_ste          },
-    [MENU_ROGER]          = { "R-Tone",       0,   4, get_roger,         set_roger        },
-    [MENU_SCAN_MODE]      = { "Scan Mode",    0,   2, get_scan_mode,     set_scan_mode    },
-    [MENU_RPSTE]          = { "RP-STE",       0,   1, get_rpste,         set_rpste        },
-    [MENU_RPT_RL]         = { "RPT-RL",       0,   1, get_rpt_rl,       set_rpt_rl       },
-    [MENU_DUAL_WATCH]     = { "Dual Watch",   0,   1, get_dual_watch,    set_dual_watch   },
-    [MENU_BATTERY_SAVE]   = { "Batt Save",    0,   1, get_battery_save,  set_battery_save },
-    [MENU_CROSSBAND]      = { "X-Band Rpt",   0,   3, get_crossband,     set_crossband    },
-    [MENU_APRS_ENABLE]    = { "APRS",         0,   1, get_aprs_enable,   set_aprs_enable  },
-    [MENU_APRS_SYMBOL]    = { "APRS Symbol",  0,   4, get_aprs_symbol,   set_aprs_symbol  },
-    [MENU_BT_SWITCH]      = { "Bluetooth",    0,   1, get_bt_switch,     set_bt_switch    },
-    [MENU_PTT_ID]         = { "PTT-ID",       0,   3, get_ptt_id,        set_ptt_id       },
-    [MENU_DTMF_ST]        = { "DTMF-ST",      0,   1, get_dtmf_st,       set_dtmf_st      },
-    [MENU_BEEP]           = { "Beep",         0,   1, get_beep,          set_beep         },
-    [MENU_VOICE_PROMPT]   = { "Voice",        0,   1, get_voice_prompt,  set_voice_prompt },
-    [MENU_KEY_LOCK]       = { "Key Lock",     0,   1, get_key_lock,      set_key_lock     },
-    [MENU_MENU_TIMEOUT]   = { "Menu Time",    0,   4, get_menu_timeout,  set_menu_timeout },
-    [MENU_POWER_MSG]      = { "Power Msg",    0,   2, get_power_msg,     set_power_msg    },
-    [MENU_BREATH_LED]     = { "Breath LED",   0,   1, get_breath_led,    set_breath_led   },
-    [MENU_NOAA_ALARM]     = { "NOAA Alert",   0,   1, get_noaa_alarm,    set_noaa_alarm   },
-    [MENU_BACKLIGHT]      = { "Backlight",    0,   2, get_backlight,     set_backlight    },
-    [MENU_AUTO_POWER_OFF] = { "Auto PwrOff",  0,   3, get_auto_pwr_off,  set_auto_pwr_off },
-    [MENU_FACTORY_RESET]  = { "Reset All",    0,   1, get_factory_reset, set_factory_reset },
-    [MENU_ABOUT_VERSION]  = { "Version",      0,   0, get_about_version, set_about_version },
+    [MENU_VOX_SWITCH]     = { { "VOX Switch", "VOX Aç/Kapat", "Включение VOX" }, 0,   1, get_vox_switch,    set_vox_switch   },
+    [MENU_VOX_LEVEL]      = { { "VOX Level", "VOX Seviyesi", "Уровень VOX" }, 0,   9, get_vox_level,     set_vox_level    },
+    [MENU_VOX_DELAY]      = { { "VOX Delay", "VOX Gecikmesi", "Задержка VOX" }, 0,   7, get_vox_delay,     set_vox_delay    },
+    [MENU_STEP]           = { { "Step", "Adım", "Шаг частоты" }, 0,   7, get_step,          set_step         },
+    [MENU_OFFSET_DIR]     = { { "Direction", "Ofset Yönü", "Знак сдвига" }, 0,   2, get_offset_dir,    set_offset_dir   },
+    [MENU_OFFSET_FREQ]    = { { "Offset", "Frekans Ofseti", "Сдвиг частоты" }, 0, 255, get_offset_freq,   set_offset_freq  },
+    [MENU_MODULATION]     = { { "Modulation", "Modülasyon", "Модуляция" }, 0,   3, get_modulation,    set_modulation   },
+    [MENU_CH_NAME]        = { { "Ch Name", "Kanal Adı", "Имя канала" }, 0,   0, get_ch_name,       set_ch_name      },
+    [MENU_CTCSS_TX]       = { { "TX CTCSS", "TX CTCSS", "CTCSS передачи" }, 0,  50, get_ctcss_tx,      set_ctcss_tx     },
+    [MENU_CTCSS_RX]       = { { "RX CTCSS", "RX CTCSS", "CTCSS приёма" }, 0,  50, get_ctcss_rx,      set_ctcss_rx     },
+    [MENU_DCS_TX]         = { { "TX DCS", "TX DCS", "DCS передачи" }, 0, 104, get_dcs_tx,        set_dcs_tx       },
+    [MENU_DCS_RX]         = { { "RX DCS", "RX DCS", "DCS приёма" }, 0, 104, get_dcs_rx,        set_dcs_rx       },
+    [MENU_SCRAMBLER]      = { { "Encryption", "Karıştırıcı", "Скремблер" }, 0,   1, get_scrambler,     set_scrambler    },
+    [MENU_SCAN_ADD]       = { { "Scan Add", "Taramaya Ekle", "В список сканирования" }, 0,   1, get_scan_add,      set_scan_add     },
+    [MENU_SQUELCH]        = { { "Squelch", "Gürültü Susturma", "Шумоподавитель" }, 0,   9, get_squelch,       set_squelch      },
+    [MENU_TX_POWER]       = { { "TX Power", "Gönderim Gücü", "Мощность передачи" }, 0,   2, get_tx_power,      set_tx_power     },
+    [MENU_BANDWIDTH]      = { { "Bandwidth", "Bant Genişliği", "Ширина полосы" }, 0,   1, get_bandwidth,     set_bandwidth    },
+    [MENU_BCL]            = { { "Busy Lock", "Meşgul Kanal Kilidi", "Блок. занятого канала" }, 0,   1, get_bcl,           set_bcl          },
+    [MENU_TOT]            = { { "TOT", "Gönderim Süre Sınırı", "Таймер передачи" }, 0,   8, get_tot,           set_tot          },
+    [MENU_STE]            = { { "Tail Elim", "Kuyruk Sesi Kesme", "Подавл. хвоста" }, 0,   1, get_ste,           set_ste          },
+    [MENU_ROGER]          = { { "R-Tone", "Bitiş Tonu", "Тон конца передачи" }, 0,   4, get_roger,         set_roger        },
+    [MENU_SCAN_MODE]      = { { "Scan Mode", "Tarama Modu", "Режим сканирования" }, 0,   2, get_scan_mode,     set_scan_mode    },
+    [MENU_RPSTE]          = { { "RP-STE", "Röle Kuyruk Kesme", "Подавл. хвоста реп." }, 0,   1, get_rpste,         set_rpste        },
+    [MENU_RPT_RL]         = { { "RPT-RL", "RPT-RL", "RPT-RL" }, 0,   1, get_rpt_rl,       set_rpt_rl       },
+    [MENU_DUAL_WATCH]     = { { "Dual Watch", "İkili Dinleme", "Двойное наблюдение" }, 0,   1, get_dual_watch,    set_dual_watch   },
+    [MENU_BATTERY_SAVE]   = { { "Batt Save", "Pil Tasarrufu", "Экономия батареи" }, 0,   1, get_battery_save,  set_battery_save },
+    [MENU_CROSSBAND]      = { { "X-Band Rpt", "Çapraz Bant Rölesi", "Междиап. ретранслятор" }, 0,   3, get_crossband,     set_crossband    },
+    [MENU_APRS_ENABLE]    = { { "APRS", "APRS", "APRS" }, 0,   1, get_aprs_enable,   set_aprs_enable  },
+    [MENU_APRS_SYMBOL]    = { { "APRS Symbol", "APRS Simgesi", "Значок APRS" }, 0,   4, get_aprs_symbol,   set_aprs_symbol  },
+    [MENU_BT_SWITCH]      = { { "Bluetooth", "Bluetooth", "Bluetooth" }, 0,   1, get_bt_switch,     set_bt_switch    },
+    [MENU_PTT_ID]         = { { "PTT-ID", "PTT-ID", "PTT-ID" }, 0,   3, get_ptt_id,        set_ptt_id       },
+    [MENU_DTMF_ST]        = { { "DTMF-ST", "DTMF Yan Tonu", "Подтон DTMF" }, 0,   1, get_dtmf_st,       set_dtmf_st      },
+    [MENU_BEEP]           = { { "Beep", "Tuş Sesi", "Звук клавиш" }, 0,   1, get_beep,          set_beep         },
+    [MENU_VOICE_PROMPT]   = { { "Voice", "Sesli Uyarı", "Голосовые подсказки" }, 0,   1, get_voice_prompt,  set_voice_prompt },
+    [MENU_KEY_LOCK]       = { { "Key Lock", "Tuş Kilidi", "Блокировка клавиш" }, 0,   1, get_key_lock,      set_key_lock     },
+    [MENU_MENU_TIMEOUT]   = { { "Menu Time", "Menü Süresi", "Время меню" }, 0,   4, get_menu_timeout,  set_menu_timeout },
+    [MENU_POWER_MSG]      = { { "Power Msg", "Açılış Ekranı", "Экран запуска" }, 0,   2, get_power_msg,     set_power_msg    },
+    [MENU_BREATH_LED]     = { { "Breath LED", "Yanıp Sönen LED", "Пульсирующий LED" }, 0,   1, get_breath_led,    set_breath_led   },
+    [MENU_NOAA_ALARM]     = { { "NOAA Alert", "NOAA Uyarısı", "Уведомление NOAA" }, 0,   1, get_noaa_alarm,    set_noaa_alarm   },
+    [MENU_BACKLIGHT]      = { { "Backlight", "Ekran Aydınlatması", "Подсветка" }, 0,   2, get_backlight,     set_backlight    },
+    [MENU_AUTO_POWER_OFF] = { { "Auto PwrOff", "Otomatik Kapanma", "Автовыключение" }, 0,   3, get_auto_pwr_off,  set_auto_pwr_off },
+    [MENU_FACTORY_RESET]  = { { "Reset All", "Her Şeyi Sıfırla", "Сбросить всё" }, 0,   1, get_factory_reset, set_factory_reset },
+    [MENU_ABOUT_VERSION]  = { { "Version", "Sürüm", "Версия" }, 0,   0, get_about_version, set_about_version },
+    [MENU_LANGUAGE]      = { { "Language", "Dil", "Язык" }, MENU_ENGLISH, MENU_RUSSIAN, get_language, set_language },
 };
 
 /* Per-category item arrays */
@@ -393,7 +437,7 @@ static const menu_item_t cat_signaling[] = {
 static const menu_item_t cat_setting[] = {
     MENU_BEEP, MENU_VOICE_PROMPT, MENU_KEY_LOCK, MENU_MENU_TIMEOUT,
     MENU_POWER_MSG, MENU_BREATH_LED, MENU_NOAA_ALARM,
-    MENU_BACKLIGHT, MENU_AUTO_POWER_OFF
+    MENU_BACKLIGHT, MENU_AUTO_POWER_OFF, MENU_LANGUAGE
 };
 
 static const menu_item_t cat_reset[] = {
@@ -411,18 +455,18 @@ static const menu_item_t cat_about[] = {
  */
 
 static const menu_category_t categories[MENU_CATEGORY_COUNT] = {
-    { "VOX",         cat_vox,       3 },
-    { "Zone",        NULL,          0 },   /* OEM ID 0x13 - stub */
-    { "VFO & CH",    cat_vfo_ch,    5 },
-    { "CTCSS DCS",   cat_ctcss_dcs, 6 },
-    { "Radio Set",   cat_radio_set, 13 },
-    { "APRS Set",    cat_aprs,      2 },
-    { "User Key",    NULL,          0 },   /* OEM ID 0x18 - stub */
-    { "Bluetooth",   cat_bluetooth, 1 },
-    { "Signaling",   cat_signaling, 2 },
-    { "Setting",     cat_setting,   9 },
-    { "Reset",       cat_reset,     1 },
-    { "About",       cat_about,     1 },
+    { { "VOX", "VOX", "VOX" }, cat_vox,       3 },
+    { { "Zone", "Bölge", "Зона" }, NULL,          0 },   /* OEM ID 0x13 - stub */
+    { { "VFO & CH", "VFO ve Kanal", "VFO и канал" }, cat_vfo_ch,    5 },
+    { { "CTCSS DCS", "CTCSS DCS", "CTCSS DCS" }, cat_ctcss_dcs, 6 },
+    { { "Radio Set", "Telsiz Ayarları", "Радио" }, cat_radio_set, 13 },
+    { { "APRS Set", "APRS Ayarları", "Настройки APRS" }, cat_aprs,      2 },
+    { { "User Key", "İşlev Tuşu", "Функц. клавиша" }, NULL,          0 },   /* OEM ID 0x18 - stub */
+    { { "Bluetooth", "Bluetooth", "Bluetooth" }, cat_bluetooth, 1 },
+    { { "Signaling", "Sinyalleşme", "Сигнализация" }, cat_signaling, 2 },
+    { { "Setting", "Ayarlar", "Настройки" }, cat_setting, sizeof cat_setting / sizeof cat_setting[0] },
+    { { "Reset", "Sıfırlama", "Сброс" }, cat_reset,     1 },
+    { { "About", "Hakkında", "Об устройстве" }, cat_about,     1 },
 };
 
 /* State */
@@ -467,16 +511,24 @@ static char fmt_buf[16];
 static const char *format_value(menu_item_t item, uint8_t val)
 {
     switch (item) {
+    case MENU_LANGUAGE: {
+        static const char * const names[] = { "English", "Türkçe", "Русский" };
+        return (val < MENU_LANGUAGE_COUNT) ? names[val] : "?";
+    }
     case MENU_SQUELCH:
-        if (val == 0) return "Open";
+        if (val == 0) return TEXT("Open", "Açık", "Открыт");
         fmt_buf[0] = (char)('0' + val); fmt_buf[1] = '\0';
         return fmt_buf;
     case MENU_TX_POWER: {
-        static const char * const pwr[] = { "Low", "Mid", "High" };
-        return (val <= 2) ? pwr[val] : "?";
+        static const menu_text_t pwr[] = {
+            { "Low", "Düşük", "Низкая" },
+            { "Mid", "Orta", "Средняя" },
+            { "High", "Yüksek", "Высокая" },
+        };
+        return (val <= 2) ? localized(pwr[val]) : "?";
     }
     case MENU_BANDWIDTH:
-        return val ? "Wide" : "Narrow";
+        return val ? TEXT("Wide", "Geniş", "Широкая") : TEXT("Narrow", "Dar", "Узкая");
     case MENU_MODULATION: {
         static const char * const mod[] = { "FM", "AM", "USB", "LSB" };
         return (val <= 3) ? mod[val] : "?";
@@ -489,7 +541,7 @@ static const char *format_value(menu_item_t item, uint8_t val)
     }
     case MENU_CTCSS_TX:
     case MENU_CTCSS_RX:
-        if (val == 0) return "Off";
+        if (val == 0) return localized(text_off);
         if (val <= CTCSS_TONE_COUNT) {
             uint16_t tone = ctcss_tone_table[val - 1];
             uint8_t p = uint_to_buf(fmt_buf, tone / 10);
@@ -501,7 +553,7 @@ static const char *format_value(menu_item_t item, uint8_t val)
         return "?";
     case MENU_DCS_TX:
     case MENU_DCS_RX:
-        if (val == 0) return "Off";
+        if (val == 0) return localized(text_off);
         if (val <= DCS_CODE_COUNT) {
             uint16_t code = dcs_code_table[val - 1];
             fmt_buf[0] = (char)('0' + ((code / 100) % 10));
@@ -528,9 +580,9 @@ static const char *format_value(menu_item_t item, uint8_t val)
     case MENU_NOAA_ALARM:
     case MENU_SCAN_ADD:
     case MENU_DTMF_ST:
-        return val ? "On" : "Off";
+        return localized(val ? text_on : text_off);
     case MENU_VOX_LEVEL:
-        if (val == 0) return "Off";
+        if (val == 0) return localized(text_off);
         fmt_buf[0] = (char)('0' + val); fmt_buf[1] = '\0';
         return fmt_buf;
     case MENU_VOX_DELAY: {
@@ -540,14 +592,13 @@ static const char *format_value(menu_item_t item, uint8_t val)
         return (val <= 7) ? vdly[val] : "?";
     }
     case MENU_TOT: {
-        static const char * const tot_str[] = {
-            "Off", "30s", "60s", "90s", "120s", "150s", "180s", "210s", "240s"
-        };
-        return (val <= 8) ? tot_str[val] : "?";
+        static const char * const tot_str[] = { "30s", "60s", "90s", "120s", "150s", "180s", "210s", "240s" };
+        if (val == 0) return localized(text_off);
+        return (val <= 8) ? tot_str[val - 1] : "?";
     }
     case MENU_OFFSET_DIR: {
-        static const char * const odir[] = { "None", "+", "-" };
-        return (val <= 2) ? odir[val] : "?";
+        if (val == 0) return TEXT("None", "Yok", "Нет");
+        return (val == 1) ? "+" : (val == 2) ? "-" : "?";
     }
     case MENU_OFFSET_FREQ: {
         uint8_t mhz = val / 10, frac = val % 10, p = 0;
@@ -558,44 +609,64 @@ static const char *format_value(menu_item_t item, uint8_t val)
         return fmt_buf;
     }
     case MENU_ROGER: {
-        static const char * const rtone[] = { "Off", "1000Hz", "1450Hz", "1750Hz", "2100Hz" };
-        return (val <= 4) ? rtone[val] : "?";
+        static const char * const rtone[] = { "1000Hz", "1450Hz", "1750Hz", "2100Hz" };
+        if (val == 0) return localized(text_off);
+        return (val <= 4) ? rtone[val - 1] : "?";
     }
     case MENU_SCAN_MODE: {
         static const char * const sm[] = { "TO", "CO", "SE" };
         return (val <= 2) ? sm[val] : "?";
     }
     case MENU_BACKLIGHT: {
-        static const char * const bl[] = { "Off", "On", "Auto" };
-        return (val <= 2) ? bl[val] : "?";
+        if (val <= 1) return localized(val ? text_on : text_off);
+        return (val == 2) ? TEXT("Auto", "Otomatik", "Авто") : "?";
     }
     case MENU_AUTO_POWER_OFF: {
-        static const char * const apo[] = { "Off", "30min", "1hr", "2hr" };
-        return (val <= 3) ? apo[val] : "?";
+        static const menu_text_t apo[] = {
+            { "30min", "30 dk", "30 мин" },
+            { "1hr", "1 saat", "1 ч" },
+            { "2hr", "2 saat", "2 ч" },
+        };
+        if (val == 0) return localized(text_off);
+        return (val <= 3) ? localized(apo[val - 1]) : "?";
     }
     case MENU_MENU_TIMEOUT: {
         static const char * const mt[] = { "5s", "10s", "15s", "20s", "30s" };
         return (val <= 4) ? mt[val] : "?";
     }
     case MENU_POWER_MSG: {
-        static const char * const pm[] = { "Icons", "Full", "Voltage" };
-        return (val <= 2) ? pm[val] : "?";
+        static const menu_text_t pm[] = {
+            { "Icons", "Simgeler", "Значки" },
+            { "Full", "Tam", "Полный" },
+            { "Voltage", "Gerilim", "Напряжение" },
+        };
+        return (val <= 2) ? localized(pm[val]) : "?";
     }
     case MENU_PTT_ID: {
-        static const char * const pid[] = { "Off", "BOT", "EOT", "Both" };
-        return (val <= 3) ? pid[val] : "?";
+        if (val == 0) return localized(text_off);
+        if (val == 1) return "BOT";
+        if (val == 2) return "EOT";
+        return (val == 3) ? TEXT("Both", "İkisi", "Оба") : "?";
     }
     case MENU_CROSSBAND: {
-        static const char * const xb[] = { "Off", "A->B", "B->A", "Duplex" };
-        return (val <= 3) ? xb[val] : "?";
+        if (val == 0) return localized(text_off);
+        if (val == 1) return "A->B";
+        if (val == 2) return "B->A";
+        return (val == 3) ? TEXT("Duplex", "Dupleks", "Дуплекс") : "?";
     }
     case MENU_FACTORY_RESET:
-        return val ? "Yes!" : "No";
+        return val ? TEXT("Yes!", "Evet!", "Да!") : TEXT("No", "Hayır", "Нет");
     case MENU_CH_NAME:
-        return "Edit...";
+        return TEXT("Edit...", "Düzenle...", "Изменить...");
     case MENU_APRS_SYMBOL: {
-        static const char *sym[] = { "Jogger", "Bicycle", "Car", "RV", "SUV" };
-        return (val < 5) ? sym[val] : "?";
+        static const menu_text_t sym[] = {
+            { "Jogger", "Koşucu", "Бегун" },
+            { "Bicycle", "Bisiklet", "Велосипед" },
+            { "Car", "Otomobil", "Автомобиль" },
+            { "RV", "Karavan", "Автодом" },
+            { "SUV", "SUV", "SUV" },
+        };
+        return (val < 5) ? localized(sym[val]) : "?";
     }
     case MENU_ABOUT_VERSION:
         return "1.0";
@@ -778,33 +849,33 @@ void menu_handle_key(uint8_t key)
 
 static void draw_category_view(void)
 {
-    display_draw_text(MENU_X_PAD, 5, "MENU", COLOR_WHITE, COLOR_BLACK);
+    display_draw_text(MENU_X_PAD, 5, TEXT("MENU", "MENÜ", "МЕНЮ"), COLOR_WHITE, COLOR_BLACK);
     display_draw_hline(0, 18, LCD_WIDTH, COLOR_DKGRAY);
     if (cur_category > 0)
-        display_printf(MENU_X_PAD + 16, 35, COLOR_GRAY, COLOR_BLACK,
-                       "%s", categories[cur_category - 1].name);
+        display_draw_text(MENU_X_PAD + 16, 35, localized(categories[cur_category - 1].name),
+                          COLOR_GRAY, COLOR_BLACK);
     display_draw_text(MENU_X_PAD, 65, ">", COLOR_WHITE, COLOR_BLACK);
-    display_printf(MENU_X_PAD + 16, 65, COLOR_WHITE, COLOR_BLACK,
-                   "%s", categories[cur_category].name);
+    display_draw_text(MENU_X_PAD + 16, 65, localized(cur_cat()->name), COLOR_WHITE, COLOR_BLACK);
     if (categories[cur_category].count > 0)
         display_printf(MENU_X_PAD + 16, 85, COLOR_CYAN, COLOR_BLACK,
-                       "%u items", (unsigned)categories[cur_category].count);
+                       TEXT("%u items", "%u öğe", "Пунктов: %u"), (unsigned)cur_cat()->count);
     else
-        display_draw_text(MENU_X_PAD + 16, 85, "(not available)",
+        display_draw_text(MENU_X_PAD + 16, 85, TEXT("(not available)", "(kullanılamıyor)", "(недоступно)"),
                           COLOR_DKGRAY, COLOR_BLACK);
     if (cur_category < MENU_CATEGORY_COUNT - 1)
-        display_printf(MENU_X_PAD + 16, 115, COLOR_GRAY, COLOR_BLACK,
-                       "%s", categories[cur_category + 1].name);
+        display_draw_text(MENU_X_PAD + 16, 115, localized(categories[cur_category + 1].name),
+                          COLOR_GRAY, COLOR_BLACK);
     display_printf(MENU_X_PAD, 145, COLOR_DKGRAY, COLOR_BLACK,
                    "%u/%u", (unsigned)(cur_category + 1), (unsigned)MENU_CATEGORY_COUNT);
     display_draw_hline(0, 160, LCD_WIDTH, COLOR_DKGRAY);
-    display_draw_text(MENU_X_PAD, 168, "OK=Enter  #=Exit", COLOR_GRAY, COLOR_BLACK);
+    display_draw_text(MENU_X_PAD, 168, TEXT("OK=Enter  #=Exit", "OK=Aç  #=Çık", "OK=Открыть  #=Выход"),
+                      COLOR_GRAY, COLOR_BLACK);
 }
 
 static void draw_list_view(void)
 {
     const menu_category_t *c = cur_cat();
-    display_printf(MENU_X_PAD, 5, COLOR_WHITE, COLOR_BLACK, "%s", c->name);
+    display_draw_text(MENU_X_PAD, 5, localized(c->name), COLOR_WHITE, COLOR_BLACK);
     display_draw_hline(0, 18, LCD_WIDTH, COLOR_DKGRAY);
     for (uint8_t vi = 0; vi < LIST_VISIBLE && (list_scroll + vi) < c->count; vi++) {
         uint8_t idx = list_scroll + vi;
@@ -814,10 +885,10 @@ static void draw_list_view(void)
         uint16_t vc = (idx == cur_item_idx) ? COLOR_CYAN : COLOR_DKGRAY;
         if (idx == cur_item_idx)
             display_draw_text(MENU_X_PAD, y, ">", COLOR_WHITE, COLOR_BLACK);
-        display_draw_text(MENU_X_PAD + 12, y, menu_items[mi].name, nc, COLOR_BLACK);
+        display_draw_text(MENU_X_PAD + 12, y, localized(menu_items[mi].name), nc, COLOR_BLACK);
         uint8_t val = menu_items[mi].get_val();
         const char *vstr = format_value(mi, val);
-        display_printf(LCD_WIDTH - 70, y, vc, COLOR_BLACK, "%s", vstr);
+        display_draw_text(MENU_VALUE_X, y, vstr, vc, COLOR_BLACK);
     }
     if (list_scroll > 0)
         display_draw_text(LCD_WIDTH - 16, LIST_Y_START - 10, "^", COLOR_DKGRAY, COLOR_BLACK);
@@ -828,35 +899,42 @@ static void draw_list_view(void)
                    COLOR_DKGRAY, COLOR_BLACK, "%u/%u",
                    (unsigned)(cur_item_idx + 1), (unsigned)c->count);
     display_draw_hline(0, 180, LCD_WIDTH, COLOR_DKGRAY);
-    display_draw_text(MENU_X_PAD, 188, "OK=Edit  #=Back", COLOR_GRAY, COLOR_BLACK);
+    display_draw_text(MENU_X_PAD, 188, TEXT("OK=Edit  #=Back", "OK=Düzenle  #=Geri", "OK=Изменить  #=Назад"),
+                      COLOR_GRAY, COLOR_BLACK);
 }
 
 static void draw_edit_view(void)
 {
     menu_item_t mi = cur_menu_item();
     if (mi == MENU_CH_NAME && text_input_is_active()) {
-        display_draw_text(MENU_X_PAD, 5, "EDIT NAME", COLOR_YELLOW, COLOR_BLACK);
+        display_draw_text(MENU_X_PAD, 5, TEXT("EDIT NAME", "ADI DÜZENLE", "ИЗМЕНИТЬ ИМЯ"),
+                          COLOR_YELLOW, COLOR_BLACK);
         display_draw_hline(0, 18, LCD_WIDTH, COLOR_DKGRAY);
-        text_input_draw();
+        text_input_draw(TEXT("Edit Name:", "Adı düzenle:", "Изменить имя:"));
         display_draw_hline(0, 120, LCD_WIDTH, COLOR_DKGRAY);
-        display_draw_text(MENU_X_PAD, 130, "OK=Save  #=Cancel", COLOR_GRAY, COLOR_BLACK);
-        display_draw_text(MENU_X_PAD, 150, "2-9=Letters *=Del", COLOR_DKGRAY, COLOR_BLACK);
+        display_draw_text(MENU_X_PAD, 130, localized(text_save), COLOR_GRAY, COLOR_BLACK);
+        display_draw_text(MENU_X_PAD, 150, TEXT("2-9=Letters *=Del", "2-9=Harf  *=Sil", "2-9=Буквы  *=Удалить"),
+                          COLOR_DKGRAY, COLOR_BLACK);
         return;
     }
+    const char *name = localized(menu_items[mi].name);
     display_printf(MENU_X_PAD, 5, COLOR_WHITE, COLOR_BLACK,
-                   "%s > %s", cur_cat()->name, menu_items[mi].name);
+                   "%s > %s", localized(cur_cat()->name), name);
     display_draw_hline(0, 18, LCD_WIDTH, COLOR_DKGRAY);
-    display_draw_text(MENU_X_PAD, 50, menu_items[mi].name, COLOR_WHITE, COLOR_BLACK);
+    display_draw_text(MENU_X_PAD, 50, name, COLOR_WHITE, COLOR_BLACK);
     {
         const char *vstr = format_value(mi, edit_value);
         display_printf(MENU_X_PAD, 80, COLOR_YELLOW, COLOR_BLACK, "< %s >", vstr);
     }
-    display_printf(MENU_X_PAD, 110, COLOR_GRAY, COLOR_BLACK,
-                   "%u..%u", (unsigned)menu_items[mi].min_val,
-                   (unsigned)menu_items[mi].max_val);
+    if (mi != MENU_LANGUAGE)
+        display_printf(MENU_X_PAD, 110, COLOR_GRAY, COLOR_BLACK,
+                       "%u..%u", (unsigned)menu_items[mi].min_val,
+                       (unsigned)menu_items[mi].max_val);
     display_draw_hline(0, 135, LCD_WIDTH, COLOR_DKGRAY);
-    display_draw_text(MENU_X_PAD, 145, "OK=Save  #=Cancel", COLOR_GRAY, COLOR_BLACK);
-    display_draw_text(MENU_X_PAD, 165, "Encoder to adjust", COLOR_DKGRAY, COLOR_BLACK);
+    display_draw_text(MENU_X_PAD, 145, localized(text_save), COLOR_GRAY, COLOR_BLACK);
+    display_draw_text(MENU_X_PAD, 165,
+                      TEXT("Encoder to adjust", "Ayarlamak için düğmeyi çevir", "Вращайте ручку для настройки"),
+                      COLOR_DKGRAY, COLOR_BLACK);
 }
 
 void menu_draw(void)

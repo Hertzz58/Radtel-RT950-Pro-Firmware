@@ -210,7 +210,7 @@ void text_input_handle_encoder(int8_t direction)
 
 /* Draw ----------------------------------------------------------------- */
 
-void text_input_draw(void)
+void text_input_draw(const char *title)
 {
     if (!active) return;
 
@@ -222,8 +222,7 @@ void text_input_draw(void)
     lcd_fill_rect(0, LAYOUT_INFO_Y, LCD_WIDTH, LAYOUT_INFO_H, COLOR_BLACK);
 
     /* Header */
-    font_draw_string(FONT_SMALL, 4, LAYOUT_INFO_Y + 2,
-                     "Edit Name:", COLOR_YELLOW, COLOR_BLACK);
+    display_draw_text(4, LAYOUT_INFO_Y + 2, title, COLOR_YELLOW, COLOR_BLACK);
 
     /* Draw text with cursor underline */
     uint16_t x = 8;
